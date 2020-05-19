@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.github.derklaro.database.mysql.entry;
+package com.github.derklaro.database.common.entry;
 
 import com.github.derklaro.database.api.Database;
 import com.github.derklaro.database.api.objects.DatabaseEntry;

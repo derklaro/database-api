@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.github.derklaro.database.mysql.connection;
+package com.github.derklaro.database.common.configuration;
 
 import com.github.derklaro.database.api.connection.ConnectionConfiguration;
 import org.jetbrains.annotations.NotNull;

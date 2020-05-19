@@ -23,7 +23,7 @@
  */
 package com.github.derklaro.database.mysql;
 
-import com.github.derklaro.database.mysql.entry.DefaultDatabaseEntry;
+import com.github.derklaro.database.common.entry.DefaultDatabaseEntry;
 import com.github.derklaro.database.api.Database;
 import com.github.derklaro.database.api.buffer.ByteBuffer;
 import com.github.derklaro.database.api.objects.DatabaseEntry;
