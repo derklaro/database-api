@@ -23,11 +23,12 @@
  */
 package com.github.derklaro.database.mysql.connection;
 
-import com.zaxxer.hikari.HikariDataSource;
 import com.github.derklaro.database.api.DatabaseProvider;
 import com.github.derklaro.database.api.connection.ConnectionConfiguration;
 import com.github.derklaro.database.api.connection.ConnectionProvider;
 import com.github.derklaro.database.mysql.MySQLDatabaseProvider;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -48,10 +49,9 @@ public class MySQLConnectionProvider implements ConnectionProvider {
         }
 
         return CompletableFuture.supplyAsync(() -> {
-            HikariDataSource hikariDataSource = new HikariDataSource();
+            HikariConfig hikariConfig = new HikariConfig();
 
-            hikariDataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-            hikariDataSource.setJdbcUrl(String.format(
+            hikariConfig.setJdbcUrl(String.format(
                     CONNECT_URL,
                     connectionConfiguration.getHost(),
                     connectionConfiguration.getPort(),
@@ -59,16 +59,22 @@ public class MySQLConnectionProvider implements ConnectionProvider {
                     connectionConfiguration.useSSL(),
                     connectionConfiguration.useSSL()
             ));
+            hikariConfig.setDriverClassName("com.mysql.cj.jdbc.Driver");
+            hikariConfig.setUsername(connectionConfiguration.getUserName());
+            hikariConfig.setPassword(connectionConfiguration.getPassword());
 
-            hikariDataSource.setUsername(connectionConfiguration.getUserName());
-            hikariDataSource.setPassword(connectionConfiguration.getPassword());
+            hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+            hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+            hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+            hikariConfig.addDataSourceProperty("useServerPrepStmts", "true");
+            hikariConfig.addDataSourceProperty("useLocalSessionState", "true");
+            hikariConfig.addDataSourceProperty("rewriteBatchedStatements", "true");
+            hikariConfig.addDataSourceProperty("cacheResultSetMetadata", "true");
+            hikariConfig.addDataSourceProperty("cacheServerConfiguration", "true");
+            hikariConfig.addDataSourceProperty("elideSetAutoCommits", "true");
+            hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
 
-            hikariDataSource.setValidationTimeout(5000);
-            hikariDataSource.setConnectionTimeout(5000);
-            hikariDataSource.setMaximumPoolSize(20);
-
-            hikariDataSource.validate();
-            return hikariDataSource.isRunning() ? Optional.of(new MySQLDatabaseProvider(hikariDataSource)) : Optional.empty();
+            return Optional.of(new MySQLDatabaseProvider(new HikariDataSource(hikariConfig)));
         });
     }
 
