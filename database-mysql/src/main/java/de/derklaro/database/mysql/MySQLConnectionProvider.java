@@ -21,26 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package de.derklaro.database.mysql.connection;
+package de.derklaro.database.mysql;
 
-import de.derklaro.database.api.DatabaseProvider;
-import de.derklaro.database.api.connection.ConnectionConfiguration;
-import de.derklaro.database.api.connection.ConnectionProvider;
-import de.derklaro.database.mysql.MySQLDatabaseProvider;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import de.derklaro.database.api.DatabaseProvider;
+import de.derklaro.database.api.connection.ConnectionConfiguration;
+import de.derklaro.database.sql.connection.SQLConnectionProvider;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 
-public class MySQLConnectionProvider implements ConnectionProvider {
-
-    private static final String CONNECT_URL = "jdbc:mysql://%s:%d/%s?serverTimezone=UTC&useSSL=%b&trustServerCertificate=%b";
-
-    private final Collection<DatabaseProvider> providers = new CopyOnWriteArrayList<>();
+public class MySQLConnectionProvider extends SQLConnectionProvider {
 
     @Override
     public @NotNull CompletableFuture<Optional<DatabaseProvider>> connect(@NotNull ConnectionConfiguration connectionConfiguration) {
@@ -77,18 +70,6 @@ public class MySQLConnectionProvider implements ConnectionProvider {
             DatabaseProvider result = new MySQLDatabaseProvider(new HikariDataSource(hikariConfig));
             this.providers.add(result);
             return Optional.of(result);
-        });
-    }
-
-    @Override
-    public @NotNull CompletableFuture<Void> closeAllConnections() {
-        return CompletableFuture.supplyAsync(() -> {
-            for (DatabaseProvider provider : this.providers) {
-                provider.closeConnection().join();
-            }
-
-            this.providers.clear();
-            return null;
         });
     }
 }

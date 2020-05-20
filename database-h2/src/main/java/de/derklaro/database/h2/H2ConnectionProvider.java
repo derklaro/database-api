@@ -21,25 +21,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package de.derklaro.database.mongodb.connection;
+package de.derklaro.database.h2;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import de.derklaro.database.api.DatabaseProvider;
 import de.derklaro.database.api.connection.ConnectionConfiguration;
-import de.derklaro.database.api.connection.ConnectionProvider;
-import de.derklaro.database.mongodb.MongoDatabaseProvider;
+import de.derklaro.database.sql.connection.SQLConnectionProvider;
+import org.h2.Driver;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 
-public class MongoConnectionProvider implements ConnectionProvider {
+public class H2ConnectionProvider extends SQLConnectionProvider {
 
-    private final Collection<DatabaseProvider> databaseProviders = new CopyOnWriteArrayList<>();
+    static {
+        Driver.load();
+    }
 
     @Override
     public @NotNull CompletableFuture<Optional<DatabaseProvider>> connect(@NotNull ConnectionConfiguration connectionConfiguration) {
@@ -48,29 +49,13 @@ public class MongoConnectionProvider implements ConnectionProvider {
         }
 
         return CompletableFuture.supplyAsync(() -> {
-            String authParams = !connectionConfiguration.getUserName().isEmpty() && !connectionConfiguration.getPassword().isEmpty()
-                    ? connectionConfiguration.getUserName() + ":" + connectionConfiguration.getPassword() + "@"
-                    : "";
-
-            MongoClient client = MongoClients.create(new ConnectionString(
-                    "mongodb://" + authParams + connectionConfiguration.getHost() + ":" + connectionConfiguration.getPort()
-                            + "/" + connectionConfiguration.getTargetDatabase() + "?ssl=" + connectionConfiguration.useSSL() + "&sslInvalidHostNameAllowed=true"
-            ));
-            DatabaseProvider result = new MongoDatabaseProvider(client, client.getDatabase(connectionConfiguration.getTargetDatabase()));
-            this.databaseProviders.add(result);
-            return Optional.of(result);
-        });
-    }
-
-    @Override
-    public @NotNull CompletableFuture<Void> closeAllConnections() {
-        return CompletableFuture.supplyAsync(() -> {
-            for (DatabaseProvider databaseProvider : this.databaseProviders) {
-                databaseProvider.closeConnection().join();
+            try {
+                Connection connection = DriverManager.getConnection("jdbc:h2:" + new File(connectionConfiguration.getTargetDatabase()).getAbsolutePath());
+                return Optional.of(new H2DatabaseProvider(connection));
+            } catch (final SQLException exception) {
+                exception.printStackTrace();
+                return Optional.empty();
             }
-
-            this.databaseProviders.clear();
-            return null;
         });
     }
 }

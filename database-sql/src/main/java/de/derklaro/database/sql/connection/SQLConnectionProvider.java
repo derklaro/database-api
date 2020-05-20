@@ -21,15 +21,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package de.derklaro.database.mysql.util;
+package de.derklaro.database.sql.connection;
 
+import de.derklaro.database.api.DatabaseProvider;
+import de.derklaro.database.api.connection.ConnectionProvider;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.sql.SQLException;
+import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-@FunctionalInterface
-public interface SQLExceptionFunction<K, V> {
+public abstract class SQLConnectionProvider implements ConnectionProvider {
 
-    @Nullable V apply(@NotNull K k) throws SQLException;
+    protected static final String CONNECT_URL = "jdbc:mysql://%s:%d/%s?serverTimezone=UTC&useSSL=%b&trustServerCertificate=%b";
+
+    protected final Collection<DatabaseProvider> providers = new CopyOnWriteArrayList<>();
+
+    @Override
+    public @NotNull CompletableFuture<Void> closeAllConnections() {
+        return CompletableFuture.supplyAsync(() -> {
+            for (DatabaseProvider provider : this.providers) {
+                provider.closeConnection().join();
+            }
+
+            this.providers.clear();
+            return null;
+        });
+    }
 }

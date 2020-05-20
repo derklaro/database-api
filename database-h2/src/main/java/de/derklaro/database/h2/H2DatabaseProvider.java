@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package de.derklaro.database.mysql;
+package de.derklaro.database.h2;
 
-import com.zaxxer.hikari.HikariDataSource;
 import de.derklaro.database.sql.SQLDatabaseProvider;
+import de.derklaro.database.sql.util.SQLExceptionFunction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,31 +34,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
 
-public class MySQLDatabaseProvider extends SQLDatabaseProvider {
+public class H2DatabaseProvider extends SQLDatabaseProvider {
 
-    MySQLDatabaseProvider(@NotNull HikariDataSource hikariDataSource) {
-        this.hikariDataSource = hikariDataSource;
+    H2DatabaseProvider(@NotNull Connection connection) {
+        this.connection = connection;
     }
 
-    private final HikariDataSource hikariDataSource;
-
-    @Override
-    public @NotNull CompletableFuture<Boolean> isConnected() {
-        return CompletableFuture.supplyAsync(this.hikariDataSource::isRunning);
-    }
-
-    @Override
-    public @NotNull CompletableFuture<Boolean> closeConnection() {
-        return CompletableFuture.supplyAsync(() -> {
-            this.hikariDataSource.close();
-            return this.hikariDataSource.isClosed();
-        });
-    }
+    private final Connection connection;
 
     @Override
     protected int executeUpdate(@NotNull String query, @NotNull String key, @NotNull String identifier, @NotNull byte[] data, int dataIndex) {
-        try (Connection connection = this.hikariDataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
+        try (PreparedStatement statement = this.connection.prepareStatement(query)) {
             if (dataIndex == 1) {
                 statement.setBytes(1, data);
                 statement.setString(2, key);
@@ -79,8 +65,7 @@ public class MySQLDatabaseProvider extends SQLDatabaseProvider {
 
     @Override
     protected int executeUpdate(@NotNull String query, @NotNull Object... objects) {
-        try (Connection connection = this.hikariDataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
+        try (PreparedStatement statement = this.connection.prepareStatement(query)) {
             int i = 1;
             for (Object object : objects) {
                 statement.setString(i++, object.toString());
@@ -95,9 +80,8 @@ public class MySQLDatabaseProvider extends SQLDatabaseProvider {
     }
 
     @Override
-    protected <T> @Nullable T executeQuery(de.derklaro.database.sql.util.@NotNull SQLExceptionFunction<ResultSet, T> consumer, @NotNull String query, @NotNull Object... objects) {
-        try (Connection connection = this.hikariDataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
+    protected <T> @Nullable T executeQuery(@NotNull SQLExceptionFunction<ResultSet, T> consumer, @NotNull String query, @NotNull Object... objects) {
+        try (PreparedStatement statement = this.connection.prepareStatement(query)) {
             int i = 1;
             for (Object object : objects) {
                 statement.setString(i++, object.toString());
@@ -111,5 +95,28 @@ public class MySQLDatabaseProvider extends SQLDatabaseProvider {
         }
 
         return null;
+    }
+
+    @Override
+    public @NotNull CompletableFuture<Boolean> isConnected() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return !connection.isClosed() && connection.isValid(250);
+            } catch (final SQLException ex) {
+                return false;
+            }
+        });
+    }
+
+    @Override
+    public @NotNull CompletableFuture<Boolean> closeConnection() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                this.connection.close();
+            } catch (final SQLException ignored) {
+            }
+
+            return this.isConnected().join();
+        });
     }
 }

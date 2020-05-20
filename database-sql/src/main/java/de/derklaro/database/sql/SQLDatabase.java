@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package de.derklaro.database.mysql;
+package de.derklaro.database.sql;
 
 import de.derklaro.database.api.Database;
 import de.derklaro.database.api.objects.DatabaseEntry;
@@ -38,9 +38,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class MySQLDatabase<V extends DatabaseObject> implements Database<V> {
+public class SQLDatabase<V extends DatabaseObject> implements Database<V> {
 
-    MySQLDatabase(@NotNull MySQLDatabaseProvider provider, @NotNull String name, @NotNull Class<V> type) {
+    SQLDatabase(@NotNull SQLDatabaseProvider provider, @NotNull String name, @NotNull Class<V> type) {
         this.provider = provider;
         this.name = name;
         this.type = type;
@@ -48,7 +48,7 @@ public class MySQLDatabase<V extends DatabaseObject> implements Database<V> {
         provider.executeUpdate("CREATE TABLE IF NOT EXISTS `" + name + "` (`key` TEXT, `identifier` TEXT, `data` LONGBLOB);");
     }
 
-    private final MySQLDatabaseProvider provider;
+    private final SQLDatabaseProvider provider;
     private final String name;
     private final Class<V> type;
 
