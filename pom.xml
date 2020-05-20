@@ -15,6 +15,7 @@
         <module>database-mysql</module>
         <module>database-mongodb</module>
         <module>database-h2</module>
+        <module>database-config-gson</module>
     </modules>
 
     <description>
